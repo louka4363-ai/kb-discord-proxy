@@ -2,20 +2,46 @@ const express = require("express");
 const fetch = require("node-fetch");
 
 const app = express();
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.send("KB Equipment Proxy Running");
 });
 
 app.post("/discord-proxy", async (req, res) => {
-  const { webhook, content, username } = req.body || {};
+  const webhook = req.body.webhook;
+  const content = req.body.content || "";
+  const username = req.body.username || "KB Equipment Logs";
 
-  if (!webhook || !content) {
+  let embeds = undefined;
+
+  if (req.body.embeds_json) {
+    try {
+      embeds = JSON.parse(req.body.embeds_json);
+    } catch (e) {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid embeds_json"
+      });
+    }
+  }
+
+  if (!webhook) {
     return res.status(400).json({
       ok: false,
-      error: "Missing webhook or content"
+      error: "Missing webhook"
     });
+  }
+
+  const payload = {
+    username,
+    content
+  };
+
+  if (embeds && Array.isArray(embeds) && embeds.length > 0) {
+    payload.embeds = embeds;
   }
 
   try {
@@ -25,12 +51,7 @@ app.post("/discord-proxy", async (req, res) => {
         "Content-Type": "application/json",
         "User-Agent": "KB-Equipment-Proxy/1.0"
       },
-      body: JSON.stringify({
-        username: username || "KB Equipment Logs",
-        content: content || "",
-          embeds: req.body.embeds || undefined
-      })
-      })
+      body: JSON.stringify(payload)
     });
 
     const text = await response.text();
