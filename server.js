@@ -27,7 +27,9 @@ app.post("/discord-proxy", async (req, res) => {
       },
       body: JSON.stringify({
         username: username || "KB Equipment Logs",
-        content: content
+        content: content || "",
+          embeds: req.body.embeds || undefined
+      })
       })
     });
 
